@@ -1,47 +1,31 @@
 package com.example.labb_b_2
 
 import android.os.Bundle
+import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.labb_b_2.ui.theme.LabbB2Theme
+import androidx.activity.viewModels
+import androidx.lifecycle.Observer
+import com.example.labb_b_2.viewModel.WeatherViewModel
 
 class MainActivity : ComponentActivity() {
+
+    // ViewModel instance
+    private val weatherViewModel: WeatherViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            LabbB2Theme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        }
-    }
-}
+        setContentView(R.layout.activity_main)  // Your XML layout
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+        // Find views
+        val latitudeInput = findViewById<EditText>(R.id.latitudeInput)
+        val longitudeInput = findViewById<EditText>(R.id.longitudeInput)
+        val fetchWeatherButton = findViewById<Button>(R.id.fetchWeatherButton)
+        val weatherOutput = findViewById<TextView>(R.id.weatherOutput)
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    LabbB2Theme {
-        Greeting("Android")
+        // Initialize HomeScreen and pass the required views and ViewModel
+        val homeScreen = HomeScreen()
+        homeScreen.setupHomeScreen(weatherViewModel, latitudeInput, longitudeInput, fetchWeatherButton, weatherOutput)
     }
 }

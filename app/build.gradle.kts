@@ -8,6 +8,7 @@ android {
     namespace = "com.example.labb_b_2"
     compileSdk = 35
 
+
     defaultConfig {
         applicationId = "com.example.labb_b_2"
         minSdk = 24
@@ -50,12 +51,15 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
+
+
     // Retrofit for API calls
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
 
     // RecyclerView
     implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.appcompat)
 
     // Testing dependencies
     testImplementation(libs.junit)

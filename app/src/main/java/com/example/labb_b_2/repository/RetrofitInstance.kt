@@ -4,7 +4,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitInstance {
-    private const val BASE_URL = "weather API’s base URL" // TODO should use testing server to not get blacklisted?
+    private const val BASE_URL = "https://api.open-meteo.com/v1/" // TODO should use testing server to not get blacklisted?
 
     val api: WeatherService by lazy {
         Retrofit.Builder()
