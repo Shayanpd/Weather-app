@@ -7,18 +7,11 @@
     android:padding="16dp">
 
     <EditText
-        android:id="@+id/latitudeInput"
+        android:id="@+id/locationInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter latitude"
-        android:inputType="numberDecimal" />
-
-    <EditText
-        android:id="@+id/longitudeInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Enter longitude"
-        android:inputType="numberDecimal" />
+        android:hint="Enter location name (e.g., Stockholm)"
+        android:inputType="text" />
 
     <Button
         android:id="@+id/fetchWeatherButton"
