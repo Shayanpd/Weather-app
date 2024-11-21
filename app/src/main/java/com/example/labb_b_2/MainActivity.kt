@@ -21,9 +21,16 @@ class MainActivity : ComponentActivity() {
         val locationInput = findViewById<EditText>(R.id.locationInput)
         val fetchWeatherButton = findViewById<Button>(R.id.fetchWeatherButton)
         val weatherOutput = findViewById<TextView>(R.id.weatherOutput)
+        val placeNameView = findViewById<TextView>(R.id.placeName)
 
         // Initialize HomeScreen and pass the required views and ViewModel
         val homeScreen = HomeScreen()
-        homeScreen.setupHomeScreen(weatherViewModel, locationInput, fetchWeatherButton, weatherOutput)
+        homeScreen.setupHomeScreen(
+            weatherViewModel,
+            locationInput,
+            fetchWeatherButton,
+            weatherOutput,
+            placeNameView
+        )
     }
 }

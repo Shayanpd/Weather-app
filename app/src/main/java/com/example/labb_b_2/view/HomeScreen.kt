@@ -13,8 +13,14 @@ class HomeScreen {
         viewModel: WeatherViewModel,
         locationInput: EditText,
         fetchWeatherButton: Button,
-        weatherOutput: TextView
+        weatherOutput: TextView,
+        placeNameView: TextView // New TextView for displaying the place name
     ) {
+        // Observe the place name and update the UI
+        viewModel.placeName.observeForever { placeName ->
+            placeNameView.text = "Location: $placeName"
+        }
+
         // Observe hourly data for today
         viewModel.todayHourlyData.observeForever { hourlyData ->
             if (!hourlyData.isNullOrEmpty()) {
@@ -31,7 +37,7 @@ class HomeScreen {
         viewModel.weekDailyData.observeForever { dailyData ->
             if (!dailyData.isNullOrEmpty()) {
                 val dailyText = dailyData.joinToString("\n") { data ->
-                    "Date: ${data.date}, Max Temp: ${data.maxTemperature}°C, Min Temp: ${data.minTemperature}°C"
+                    "${data.dayName}: Max Temp: ${data.maxTemperature}°C, Min Temp: ${data.minTemperature}°C"
                 }
                 weatherOutput.append("Daily Forecast:\n$dailyText")
             } else {

@@ -14,8 +14,18 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 class WeatherViewModel : ViewModel() {
+
     private val weatherRepository = WeatherRepository()
     private val geocodeRepository = GeocodeRepository()
+
+    private val _placeName = MutableLiveData<String>()
+    val placeName: LiveData<String> get() = _placeName // Expose place name to observers
+
+    private val _coordinates = MutableLiveData<Pair<Float, Float>>()
+    val coordinates: LiveData<Pair<Float, Float>> get() = _coordinates
+
+    private val _error = MutableLiveData<String>()
+    val error: LiveData<String> get() = _error
 
     // Raw weather data
     private val _weatherData = MutableLiveData<WeatherResponse>()
@@ -29,13 +39,9 @@ class WeatherViewModel : ViewModel() {
     private val _weekDailyData = MutableLiveData<List<DailyData>>()
     val weekDailyData: LiveData<List<DailyData>> get() = _weekDailyData
 
-    private val _coordinates = MutableLiveData<Pair<Float, Float>>()
-    val coordinates: LiveData<Pair<Float, Float>> get() = _coordinates
-
-    private val _error = MutableLiveData<String>()
-    val error: LiveData<String> get() = _error
 
     // Fetch weather by longitude and latitude
+    @RequiresApi(Build.VERSION_CODES.O)
     fun fetchWeather(lon: Float, lat: Float) {
         weatherRepository.fetchWeatherForecast(
             lon = lon,
@@ -61,7 +67,7 @@ class WeatherViewModel : ViewModel() {
                     val results = response.body()
                     if (!results.isNullOrEmpty()) {
                         val firstResult = results[0]
-                        Log.d("WeatherViewModel", "Coordinates fetched: ${firstResult.lat}, ${firstResult.lon}")
+                        _placeName.postValue(firstResult.display_name) // Set the place name
                         _coordinates.postValue(Pair(firstResult.lat.toFloat(), firstResult.lon.toFloat()))
                     } else {
                         _error.postValue("No results found for: $query")
@@ -78,6 +84,7 @@ class WeatherViewModel : ViewModel() {
     }
 
     // Combined function to fetch weather by location name
+    @RequiresApi(Build.VERSION_CODES.O)
     fun fetchWeatherByLocationName(location: String) {
         fetchCoordinates(location)
         coordinates.observeOnce { coords ->
@@ -89,11 +96,12 @@ class WeatherViewModel : ViewModel() {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun processWeatherData(weatherResponse: WeatherResponse) {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val todayDate = LocalDate.now().format(formatter)
+        val todayDate = LocalDate.now()
+        val todayFormatted = todayDate.format(formatter)
 
         // Process hourly data for today
         val hourlyData = weatherResponse.hourly.time.indices.mapNotNull { index ->
-            if (weatherResponse.hourly.time[index].startsWith(todayDate)) {
+            if (weatherResponse.hourly.time[index].startsWith(todayFormatted)) {
                 HourlyData(
                     time = weatherResponse.hourly.time[index],
                     temperature = weatherResponse.hourly.temperature_2m[index],
@@ -105,15 +113,23 @@ class WeatherViewModel : ViewModel() {
 
         // Process daily data for the week
         val dailyData = weatherResponse.daily.time.indices.map { index ->
+            val date = LocalDate.parse(weatherResponse.daily.time[index], formatter)
+            val dayName = when (date) {
+                todayDate -> "Today"
+                todayDate.plusDays(1) -> "Tomorrow"
+                else -> date.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
+            }
             DailyData(
                 date = weatherResponse.daily.time[index],
                 maxTemperature = weatherResponse.daily.temperature_2m_max[index],
                 minTemperature = weatherResponse.daily.temperature_2m_min[index],
-                weatherCode = weatherResponse.daily.weather_code[index]
+                weatherCode = weatherResponse.daily.weather_code[index],
+                dayName = dayName
             )
         }
         _weekDailyData.postValue(dailyData)
     }
+
 
     // Extension function to observe LiveData once
     fun <T> LiveData<T>.observeOnce(observer: Observer<T>) {
@@ -138,5 +154,6 @@ data class DailyData(
     val date: String,
     val maxTemperature: Double,
     val minTemperature: Double,
-    val weatherCode: Double
+    val weatherCode: Double,
+    val dayName: String
 )

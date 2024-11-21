@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
@@ -10,24 +10,53 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- App Title -->
+        <TextView
+            android:id="@+id/appTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Weather App"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:paddingBottom="16dp" />
+
+        <!-- Location Input -->
         <EditText
             android:id="@+id/locationInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Enter location name (e.g., Stockholm)"
-            android:inputType="text" />
+            android:inputType="text"
+            tools:ignore="TouchTargetSizeCheck" />
 
+        <!-- Fetch Weather Button -->
         <Button
             android:id="@+id/fetchWeatherButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Fetch Weather" />
+            android:text="Fetch Weather"
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp" />
 
+
+        <TextView
+            android:id="@+id/placeName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="18sp"
+            android:gravity="center"
+            android:paddingBottom="8dp" />
+
+
+        <!-- Weather Output -->
         <TextView
             android:id="@+id/weatherOutput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Weather data will appear here"
-            android:paddingTop="16dp" />
+            android:text=""
+            android:paddingTop="8dp" />
+
     </LinearLayout>
 </ScrollView>
