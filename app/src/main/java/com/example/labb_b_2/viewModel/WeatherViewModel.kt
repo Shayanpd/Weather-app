@@ -1,21 +1,33 @@
 package com.example.labb_b_2.viewModel
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
-import com.example.labb_b_2.model.GeocodingResponse
-import com.example.labb_b_2.model.WeatherResponse
+import com.example.labb_b_2.model.*
 import com.example.labb_b_2.repository.GeocodeRepository
 import com.example.labb_b_2.repository.WeatherRepository
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class WeatherViewModel : ViewModel() {
     private val weatherRepository = WeatherRepository()
     private val geocodeRepository = GeocodeRepository()
 
+    // Raw weather data
     private val _weatherData = MutableLiveData<WeatherResponse>()
     val weatherData: LiveData<WeatherResponse> get() = _weatherData
+
+    // Processed hourly data for today
+    private val _todayHourlyData = MutableLiveData<List<HourlyData>>()
+    val todayHourlyData: LiveData<List<HourlyData>> get() = _todayHourlyData
+
+    // Processed daily data for the week
+    private val _weekDailyData = MutableLiveData<List<DailyData>>()
+    val weekDailyData: LiveData<List<DailyData>> get() = _weekDailyData
 
     private val _coordinates = MutableLiveData<Pair<Float, Float>>()
     val coordinates: LiveData<Pair<Float, Float>> get() = _coordinates
@@ -29,10 +41,11 @@ class WeatherViewModel : ViewModel() {
             lon = lon,
             lat = lat,
             onSuccess = { weatherResponse ->
-                _weatherData.postValue(weatherResponse) // Update weather data
+                _weatherData.postValue(weatherResponse)
+                processWeatherData(weatherResponse) // Process the raw data
             },
             onError = { errorMessage ->
-                _error.postValue(errorMessage) // Update error message
+                _error.postValue(errorMessage)
             }
         )
     }
@@ -72,14 +85,58 @@ class WeatherViewModel : ViewModel() {
         }
     }
 
+    // Process raw weather data
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun processWeatherData(weatherResponse: WeatherResponse) {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val todayDate = LocalDate.now().format(formatter)
+
+        // Process hourly data for today
+        val hourlyData = weatherResponse.hourly.time.indices.mapNotNull { index ->
+            if (weatherResponse.hourly.time[index].startsWith(todayDate)) {
+                HourlyData(
+                    time = weatherResponse.hourly.time[index],
+                    temperature = weatherResponse.hourly.temperature_2m[index],
+                    cloudCover = weatherResponse.hourly.cloudcover[index]
+                )
+            } else null
+        }
+        _todayHourlyData.postValue(hourlyData)
+
+        // Process daily data for the week
+        val dailyData = weatherResponse.daily.time.indices.map { index ->
+            DailyData(
+                date = weatherResponse.daily.time[index],
+                maxTemperature = weatherResponse.daily.temperature_2m_max[index],
+                minTemperature = weatherResponse.daily.temperature_2m_min[index],
+                weatherCode = weatherResponse.daily.weather_code[index]
+            )
+        }
+        _weekDailyData.postValue(dailyData)
+    }
+
     // Extension function to observe LiveData once
     fun <T> LiveData<T>.observeOnce(observer: Observer<T>) {
         val wrapperObserver = object : Observer<T> {
             override fun onChanged(t: T) {
                 observer.onChanged(t)
-                removeObserver(this) // Stop observing after the first event
+                removeObserver(this)
             }
         }
         observeForever(wrapperObserver)
     }
 }
+
+// Data classes for UI-friendly data
+data class HourlyData(
+    val time: String,
+    val temperature: Double,
+    val cloudCover: Double
+)
+
+data class DailyData(
+    val date: String,
+    val maxTemperature: Double,
+    val minTemperature: Double,
+    val weatherCode: Double
+)

@@ -5,7 +5,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.lifecycle.Observer
 import com.example.labb_b_2.viewModel.WeatherViewModel
 
 class HomeScreen {
@@ -16,17 +15,27 @@ class HomeScreen {
         fetchWeatherButton: Button,
         weatherOutput: TextView
     ) {
-        // Observe weather data and update the UI
-        viewModel.weatherData.observeForever { weatherResponse ->
-            weatherResponse?.let {
-                val forecastText = it.daily.time.indices.joinToString("\n") { index ->
-                    val date = it.daily.time[index]
-                    val maxTemp = it.daily.temperature_2m_max[index]
-                    val minTemp = it.daily.temperature_2m_min[index]
-                    val weatherCode = it.daily.weather_code[index]
-                    "Date: $date, Max Temp: $maxTemp°C, Min Temp: $minTemp°C, Weather Code: $weatherCode"
+        // Observe hourly data for today
+        viewModel.todayHourlyData.observeForever { hourlyData ->
+            if (!hourlyData.isNullOrEmpty()) {
+                val hourlyText = hourlyData.joinToString("\n") { data ->
+                    "Time: ${data.time}, Temp: ${data.temperature}°C, Cloud Cover: ${data.cloudCover}%"
                 }
-                weatherOutput.text = forecastText
+                weatherOutput.text = "Hourly Forecast (Today):\n$hourlyText\n\n"
+            } else {
+                weatherOutput.text = "Hourly data is unavailable.\n\n"
+            }
+        }
+
+        // Observe daily data for the rest of the week
+        viewModel.weekDailyData.observeForever { dailyData ->
+            if (!dailyData.isNullOrEmpty()) {
+                val dailyText = dailyData.joinToString("\n") { data ->
+                    "Date: ${data.date}, Max Temp: ${data.maxTemperature}°C, Min Temp: ${data.minTemperature}°C"
+                }
+                weatherOutput.append("Daily Forecast:\n$dailyText")
+            } else {
+                weatherOutput.append("Daily data is unavailable.")
             }
         }
 
