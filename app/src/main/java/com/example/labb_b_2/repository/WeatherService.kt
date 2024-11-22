@@ -12,6 +12,6 @@ interface WeatherService {
         @Query("longitude") lon: Float,
         @Query("daily") daily: String = "temperature_2m_max,temperature_2m_min,weather_code",
         @Query("hourly") hourly: String = "temperature_2m,cloudcover",
-        @Query("timezone") timezone: String = "GMT"
+        @Query("timezone") timezone: String = "auto"
     ): Call<WeatherResponse>
 }

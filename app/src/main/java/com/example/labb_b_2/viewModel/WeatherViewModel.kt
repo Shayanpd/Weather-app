@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
+import com.example.labb_b_2.R
 import com.example.labb_b_2.model.*
 import com.example.labb_b_2.repository.GeocodeRepository
 import com.example.labb_b_2.repository.WeatherRepository
@@ -88,7 +89,7 @@ class WeatherViewModel : ViewModel() {
     fun fetchWeatherByLocationName(location: String) {
         fetchCoordinates(location)
         coordinates.observeOnce { coords ->
-            fetchWeather(coords.second, coords.first)
+            fetchWeather(coords.first, coords.second)
         }
     }
 
@@ -140,6 +141,31 @@ class WeatherViewModel : ViewModel() {
             }
         }
         observeForever(wrapperObserver)
+    }
+}
+
+// Weather icons
+fun getWeatherIconResource(code: Int): Int {
+    return when (code) {
+        0 -> R.drawable.sun // Clear sky
+        1 -> R.drawable.mostly_sunny // Mainly clear
+        2 -> R.drawable.cloudy // Overcast
+        3 -> R.drawable.partly_cloudy // Partly cloudy
+        61 -> R.drawable.rain // Light rain
+        63 -> R.drawable.rain // Light rain
+        65 -> R.drawable.rain // Light rain
+        66 -> R.drawable.rain // Light rain
+        67 -> R.drawable.rain // Light rain
+        71 -> R.drawable.snow // Light snow
+        73 -> R.drawable.snow // Light snow
+        75 -> R.drawable.snow // Light snow
+        77 -> R.drawable.snow // Light snow
+        85 -> R.drawable.snow // Light snow
+        86 -> R.drawable.snow // Light snow
+        95 -> R.drawable.thunderstorm // Thunderstorm
+        96 -> R.drawable.thunderstorm // Thunderstorm
+        99 -> R.drawable.thunderstorm // Thunderstorm
+        else -> R.drawable.unknown // Fallback icon
     }
 }
 
