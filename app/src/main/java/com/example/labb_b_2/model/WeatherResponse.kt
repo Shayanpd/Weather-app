@@ -2,7 +2,8 @@ package com.example.labb_b_2.model
 
 data class WeatherResponse(
     val daily: DailyWeather,
-    val hourly: HourlyWeather // Add hourly data
+    val hourly: HourlyWeather, // Add hourly data
+    var placeName: String?
 )
 
 data class DailyWeather(

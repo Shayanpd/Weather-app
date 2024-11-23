@@ -52,8 +52,10 @@ class WeatherViewModel : ViewModel() {
             lat = lat,
             onSuccess = { weatherResponse ->
                 _weatherData.postValue(weatherResponse)
+
                 processWeatherData(weatherResponse) // Process the raw data
 
+                weatherResponse.placeName = _placeName.value
                 // Save the weather data in SharedPreferences
                 val gson = Gson()
                 val weatherJson = gson.toJson(weatherResponse)
@@ -77,7 +79,8 @@ class WeatherViewModel : ViewModel() {
                     val results = response.body()
                     if (!results.isNullOrEmpty()) {
                         val firstResult = results[0]
-                        _placeName.postValue(firstResult.display_name) // Update the place name LiveData
+                        _placeName.value = firstResult.display_name
+                        Log.d("WeatherViewModel","fetch coordnates display name: ${_placeName.value}")
                         val coordinates = Pair(firstResult.lat.toFloat(), firstResult.lon.toFloat())
                         _coordinates.postValue(coordinates) // Update coordinates LiveData
                         onSuccess(coordinates) // Trigger the onSuccess callback
@@ -99,23 +102,57 @@ class WeatherViewModel : ViewModel() {
     @RequiresApi(Build.VERSION_CODES.O)
     fun fetchWeatherByLocationName(location: String, context: Context) {
         fetchCoordinates(location) { coords ->
-            fetchWeather(coords.first, coords.second, context) // Pass the context
+            fetchWeather(coords.first, coords.second, context) // Fetch weather by coordinates
+
+            // Once the weather data is fetched, update WeatherResponse with placeName
+            val weatherResponse = _weatherData.value?.copy(
+                placeName = _placeName.value // Ensure placeName is set here
+            ) ?: WeatherResponse(
+                daily = DailyWeather(emptyList(), emptyList(), emptyList(), emptyList()),
+                hourly = HourlyWeather(emptyList(), emptyList(), emptyList()),
+                placeName = _placeName.value // Ensure it's set in the fallback case as well
+            )
+
+            Log.d("WeatherViewModel", "Place name before saving: ${_placeName.value}")
+            Log.d("WeatherViewModel", "WeatherResponse placeName before saving: ${_weatherData.value?.placeName}")
+
+            // Save the updated WeatherResponse in SharedPreferences
+            val gson = Gson()
+            val weatherJson = gson.toJson(weatherResponse)
+
+            SharedPreferencesHelper.saveWeatherData(context, weatherJson)
+            Log.d("WeatherViewModel", "Cached WeatherResponse: $weatherResponse")
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun fetchWeatherFromCache(weatherResponse: WeatherResponse) {
-        _weatherData.postValue(weatherResponse)
-        processWeatherData(weatherResponse) // Process the cached data
-    }
 
+        weatherResponse.placeName?.let {
+            _placeName.postValue(it)
+        }
+        Log.d("HomeScreen", "Cached placeName: ${weatherResponse.placeName}")
+        _weatherData.postValue(weatherResponse)
+
+        processWeatherData(weatherResponse) // Process the cached data
+        Log.d("HomeScreen", "Cached placeName: ${weatherResponse.placeName}")
+
+
+
+        Log.d("WeatherViewModel", "Cached WeatherResponse placeName: ${weatherResponse}")
+
+    }
 
     // Process raw weather data
     @RequiresApi(Build.VERSION_CODES.O)
     private fun processWeatherData(weatherResponse: WeatherResponse) {
+
+
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val todayDate = LocalDate.now()
         val todayFormatted = todayDate.format(formatter)
+
+
 
         // Process hourly data for today
         val hourlyData = weatherResponse.hourly.time.indices.mapNotNull { index ->
@@ -137,17 +174,20 @@ class WeatherViewModel : ViewModel() {
                 todayDate.plusDays(1) -> "Tomorrow"
                 else -> date.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
             }
+
+            // Format the full date (e.g., "Friday, November 23, 2024")
+            val fullDate = date.format(DateTimeFormatter.ofPattern("EEEE - MMMM d, yyyy"))
+
             DailyData(
-                date = weatherResponse.daily.time[index],
+                date = fullDate, // Use the full date format here
                 maxTemperature = weatherResponse.daily.temperature_2m_max[index],
                 minTemperature = weatherResponse.daily.temperature_2m_min[index],
                 weatherCode = weatherResponse.daily.weather_code[index],
-                dayName = dayName
+                dayName = dayName // Only store "Today", "Tomorrow", or the weekday name
             )
         }
         _weekDailyData.postValue(dailyData)
     }
-
 
     // Extension function to observe LiveData once
     fun <T> LiveData<T>.observeOnce(observer: Observer<T>) {
@@ -159,7 +199,10 @@ class WeatherViewModel : ViewModel() {
         }
         observeForever(wrapperObserver)
     }
+
 }
+
+
 
 // Weather icons
 fun getWeatherIconResource(code: Int): Int {
@@ -168,21 +211,18 @@ fun getWeatherIconResource(code: Int): Int {
         1 -> R.drawable.mostly_sunny // Mainly clear
         2 -> R.drawable.cloudy // Overcast
         3 -> R.drawable.partly_cloudy // Partly cloudy
-        61 -> R.drawable.rain // Light rain
-        63 -> R.drawable.rain // Light rain
-        65 -> R.drawable.rain // Light rain
-        66 -> R.drawable.rain // Light rain
-        67 -> R.drawable.rain // Light rain
-        71 -> R.drawable.snow // Light snow
-        73 -> R.drawable.snow // Light snow
-        75 -> R.drawable.snow // Light snow
-        77 -> R.drawable.snow // Light snow
-        85 -> R.drawable.snow // Light snow
-        86 -> R.drawable.snow // Light snow
-        95 -> R.drawable.thunderstorm // Thunderstorm
-        96 -> R.drawable.thunderstorm // Thunderstorm
-        99 -> R.drawable.thunderstorm // Thunderstorm
-        else -> R.drawable.unknown // Fallback icon
+
+        // For rain codes, we use the same icon for light to heavy rain
+        in 51..67 -> R.drawable.rain // Any drizzle or rain (light to torrential rain)
+
+        // For snow codes, we use the same icon for light to extreme snow
+        in 71..86 -> R.drawable.snow // Any snow (light to extreme snow)
+
+        // For thunderstorm codes, we use the thunderstorm icon
+        in 95..99 -> R.drawable.thunderstorm // Any thunderstorm (from regular to severe)
+
+        // Fallback for unknown or error codes
+        else -> R.drawable.unknown // Fallback icon for unrecognized or missing codes
     }
 }
 
