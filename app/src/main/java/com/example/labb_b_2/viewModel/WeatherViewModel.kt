@@ -1,5 +1,6 @@
 package com.example.labb_b_2.viewModel
 
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -10,7 +11,9 @@ import androidx.lifecycle.ViewModel
 import com.example.labb_b_2.R
 import com.example.labb_b_2.model.*
 import com.example.labb_b_2.repository.GeocodeRepository
+import com.example.labb_b_2.repository.SharedPreferencesHelper
 import com.example.labb_b_2.repository.WeatherRepository
+import com.google.gson.Gson
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -43,19 +46,25 @@ class WeatherViewModel : ViewModel() {
 
     // Fetch weather by longitude and latitude
     @RequiresApi(Build.VERSION_CODES.O)
-    fun fetchWeather(lon: Float, lat: Float) {
+    fun fetchWeather(lon: Float, lat: Float, context: Context) {
         weatherRepository.fetchWeatherForecast(
             lon = lon,
             lat = lat,
             onSuccess = { weatherResponse ->
                 _weatherData.postValue(weatherResponse)
                 processWeatherData(weatherResponse) // Process the raw data
+
+                // Save the weather data in SharedPreferences
+                val gson = Gson()
+                val weatherJson = gson.toJson(weatherResponse)
+                SharedPreferencesHelper.saveWeatherData(context, weatherJson)
             },
             onError = { errorMessage ->
                 _error.postValue(errorMessage)
             }
         )
     }
+
 
     // Fetch coordinates based on location name
     fun fetchCoordinates(query: String, onSuccess: (Pair<Float, Float>) -> Unit) {
@@ -88,11 +97,18 @@ class WeatherViewModel : ViewModel() {
 
     // Combined function to fetch weather by location name
     @RequiresApi(Build.VERSION_CODES.O)
-    fun fetchWeatherByLocationName(location: String) {
+    fun fetchWeatherByLocationName(location: String, context: Context) {
         fetchCoordinates(location) { coords ->
-            fetchWeather(coords.first, coords.second)
+            fetchWeather(coords.first, coords.second, context) // Pass the context
         }
     }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun fetchWeatherFromCache(weatherResponse: WeatherResponse) {
+        _weatherData.postValue(weatherResponse)
+        processWeatherData(weatherResponse) // Process the cached data
+    }
+
 
     // Process raw weather data
     @RequiresApi(Build.VERSION_CODES.O)

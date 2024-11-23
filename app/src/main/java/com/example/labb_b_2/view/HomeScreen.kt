@@ -3,15 +3,21 @@ package com.example.labb_b_2
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import com.example.labb_b_2.model.WeatherResponse
+import com.example.labb_b_2.repository.SharedPreferencesHelper
 import com.example.labb_b_2.viewModel.WeatherViewModel
+import com.google.gson.Gson
 
 class HomeScreen {
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun setupHomeScreen(
         viewModel: WeatherViewModel,
         locationInput: EditText,
@@ -61,22 +67,36 @@ class HomeScreen {
 
             if (location.isNotEmpty()) {
                 if (isInternetAvailable(fetchWeatherButton.context)) {
-                    // Fetch weather by location name
-                    viewModel.fetchWeatherByLocationName(location)
+                    // Fetch weather by location name and pass context
+                    viewModel.fetchWeatherByLocationName(location, fetchWeatherButton.context)
                     Log.d("HomeScreen", "Fetching weather data for location: $location")
                 } else {
                     Toast.makeText(
                         fetchWeatherButton.context,
-                        "No internet connection",
+                        "No internet connection. Showing cached data.",
                         Toast.LENGTH_SHORT
                     ).show()
-                    // TODO: Load cached data here
+                    loadCachedWeather(fetchWeatherButton.context, viewModel)
                 }
             } else {
                 Toast.makeText(fetchWeatherButton.context, "Invalid location name", Toast.LENGTH_SHORT).show()
             }
         }
 
+
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun loadCachedWeather(context: Context, viewModel: WeatherViewModel) {
+        val cachedData = SharedPreferencesHelper.getWeatherData(context)
+        if (cachedData != null) {
+            val gson = Gson()
+            val weatherResponse = gson.fromJson(cachedData, WeatherResponse::class.java)
+            viewModel.fetchWeatherFromCache(weatherResponse)
+        } else {
+            Toast.makeText(context, "No cached data available.", Toast.LENGTH_SHORT).show()
+        }
     }
 
     fun isInternetAvailable(context: Context): Boolean {
