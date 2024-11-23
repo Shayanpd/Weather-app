@@ -58,7 +58,7 @@ class WeatherViewModel : ViewModel() {
     }
 
     // Fetch coordinates based on location name
-    fun fetchCoordinates(query: String) {
+    fun fetchCoordinates(query: String, onSuccess: (Pair<Float, Float>) -> Unit) {
         geocodeRepository.fetchCoordinates(query).enqueue(object : retrofit2.Callback<List<GeocodingResponse>> {
             override fun onResponse(
                 call: retrofit2.Call<List<GeocodingResponse>>,
@@ -68,8 +68,10 @@ class WeatherViewModel : ViewModel() {
                     val results = response.body()
                     if (!results.isNullOrEmpty()) {
                         val firstResult = results[0]
-                        _placeName.postValue(firstResult.display_name) // Set the place name
-                        _coordinates.postValue(Pair(firstResult.lat.toFloat(), firstResult.lon.toFloat()))
+                        _placeName.postValue(firstResult.display_name) // Update the place name LiveData
+                        val coordinates = Pair(firstResult.lat.toFloat(), firstResult.lon.toFloat())
+                        _coordinates.postValue(coordinates) // Update coordinates LiveData
+                        onSuccess(coordinates) // Trigger the onSuccess callback
                     } else {
                         _error.postValue("No results found for: $query")
                     }
@@ -87,8 +89,7 @@ class WeatherViewModel : ViewModel() {
     // Combined function to fetch weather by location name
     @RequiresApi(Build.VERSION_CODES.O)
     fun fetchWeatherByLocationName(location: String) {
-        fetchCoordinates(location)
-        coordinates.observeOnce { coords ->
+        fetchCoordinates(location) { coords ->
             fetchWeather(coords.first, coords.second)
         }
     }
