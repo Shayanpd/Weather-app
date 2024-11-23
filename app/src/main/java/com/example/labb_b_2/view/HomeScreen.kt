@@ -1,5 +1,8 @@
 package com.example.labb_b_2
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
@@ -57,12 +60,29 @@ class HomeScreen {
             val location = locationInput.text.toString().trim()
 
             if (location.isNotEmpty()) {
-                // Fetch weather by location name
-                viewModel.fetchWeatherByLocationName(location)
-                Log.d("HomeScreen", "Fetching weather data for location: $location")
+                if (isInternetAvailable(fetchWeatherButton.context)) {
+                    // Fetch weather by location name
+                    viewModel.fetchWeatherByLocationName(location)
+                    Log.d("HomeScreen", "Fetching weather data for location: $location")
+                } else {
+                    Toast.makeText(
+                        fetchWeatherButton.context,
+                        "No internet connection",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    // TODO: Load cached data here
+                }
             } else {
-                Toast.makeText(weatherOutput.context, "Invalid location name", Toast.LENGTH_SHORT).show()
+                Toast.makeText(fetchWeatherButton.context, "Invalid location name", Toast.LENGTH_SHORT).show()
             }
         }
+
+    }
+
+    fun isInternetAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return activeNetwork.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 }
