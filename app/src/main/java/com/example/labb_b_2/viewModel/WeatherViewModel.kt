@@ -1,12 +1,13 @@
 package com.example.labb_b_2.viewModel
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import com.example.labb_b_2.R
 import com.example.labb_b_2.model.*
@@ -23,13 +24,10 @@ class WeatherViewModel : ViewModel() {
     private val geocodeRepository = GeocodeRepository()
 
     private val _placeName = MutableLiveData<String>()
-    val placeName: LiveData<String> get() = _placeName // Expose place name to observers
 
     private val _coordinates = MutableLiveData<Pair<Float, Float>>()
-    val coordinates: LiveData<Pair<Float, Float>> get() = _coordinates
 
     private val _error = MutableLiveData<String>()
-    val error: LiveData<String> get() = _error
 
     // Raw weather data
     private val _weatherData = MutableLiveData<WeatherResponse>()
@@ -67,6 +65,34 @@ class WeatherViewModel : ViewModel() {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun loadCachedWeather(context: Context) {
+        // Retrieve cached data from SharedPreferences
+        val cachedData = SharedPreferencesHelper.getWeatherData(context)
+        if (cachedData != null) {
+            Log.d("WeatherViewModel", "Cached JSON data loaded: $cachedData")
+
+            // Convert the cached JSON into a WeatherResponse object
+            val weatherResponse = Gson().fromJson(cachedData, WeatherResponse::class.java)
+            Log.d("WeatherViewModel", "Deserialized WeatherResponse from cache: $weatherResponse")
+
+            // Ensure that placeName is correctly set
+            if (weatherResponse.placeName != null) {
+                Log.d("WeatherViewModel", "Cached placeName: ${weatherResponse.placeName}")
+            } else {
+                Log.w("WeatherViewModel", "Cached data has null placeName!")
+            }
+
+            // Update the ViewModel with the cached weather response
+            fetchWeatherFromCache(weatherResponse)
+            Log.d("WeatherViewModel", "Weather data updated in ViewModel from cache.")
+        } else {
+            Log.w("WeatherViewModel", "No cached data found in SharedPreferences.")
+            // You can handle the absence of cached data here, e.g., by notifying the user.
+        }
+    }
+
+    // Process cached weather data
 
     // Fetch coordinates based on location name
     fun fetchCoordinates(query: String, onSuccess: (Pair<Float, Float>) -> Unit) {
@@ -96,6 +122,13 @@ class WeatherViewModel : ViewModel() {
                 _error.postValue("Error: ${t.message}")
             }
         })
+    }
+
+    fun isInternetAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return activeNetwork.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     // Combined function to fetch weather by location name
@@ -189,19 +222,7 @@ class WeatherViewModel : ViewModel() {
         _weekDailyData.postValue(dailyData)
     }
 
-    // Extension function to observe LiveData once
-    fun <T> LiveData<T>.observeOnce(observer: Observer<T>) {
-        val wrapperObserver = object : Observer<T> {
-            override fun onChanged(t: T) {
-                observer.onChanged(t)
-                removeObserver(this)
-            }
-        }
-        observeForever(wrapperObserver)
-    }
-
 }
-
 
 
 // Weather icons
@@ -226,17 +247,3 @@ fun getWeatherIconResource(code: Int): Int {
     }
 }
 
-// Data classes for UI-friendly data
-data class HourlyData(
-    val time: String,
-    val temperature: Double,
-    val cloudCover: Double
-)
-
-data class DailyData(
-    val date: String,
-    val maxTemperature: Double,
-    val minTemperature: Double,
-    val weatherCode: Double,
-    val dayName: String
-)
